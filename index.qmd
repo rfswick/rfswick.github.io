@@ -1,5 +1,22 @@
 ---
-title: "rfswick.github.io"
+title: "Rachel Swick"
+image: Swick_Headshot.jpg
+about:
+  template: trestles
+  image-shape: round
+  image-width: 27em
+  links: 
+    - text: LinkedIn
+      href: http://www.linkedin.com/in/rachelswick
+      target: _blank
+    - text: GitHub
+      href: https://github.com/rfswick
+    - text: Email
+      href: mailto:rachelfswick@gmail.com
 ---
 
+
+Rachel Swick graduated from DePauw University in 2018 with a Bachelor of Arts in Environmental Biology.  Upon graduation, she worked on San Clemente Island, under the direction of the United States Navy, conducting botanical restoration, mapping wildfire footprints, and verifying vegetation mapping completed using remotely sensed aerial imagery. Her time on San Clemente Island was hugely impactful, combining her love of the outdoors with conservation and botany. However, it was while working on San Clemente Island she noticed the impact of poor data management on long term project success and started exploring potential solutions. Following her time on San Clemente Island, she worked as a biologist for an environmental consulting firm. She was involved with projects covering resource management, restoration, energy, industrial development, municipal, transportation, and residential development. From these experiences, she has found value in data driven solutions and effective data management. Rachel is currently pursuing a Master of Environmental Data Science at University of California, Santa Barbara, Bren School of Environmental Science and Management. She hopes to use remote sensing and other data science tools to help communities make informed decisions on wildfire prevention and become more resilient against future climate threats.
+
+# Education
 
