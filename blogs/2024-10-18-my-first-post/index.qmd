@@ -1,0 +1,48 @@
+---
+title: "First Blog Post"
+description: "A short catchy description of the blog post"
+author:
+   - name: Rachel Swick
+     url: https://rfswick.github.io/
+     affiliation: MEDS
+     affiliation-url: https://bren.ucsb.edu/masters-programs/master-environmental-data-science
+date: 2024-10-18
+categories: [Quarto, MEDS, Bren_life]
+toc: true
+bibliography: references.bib
+csl: plos-computational-biology.csl
+image: test.png
+citation:
+  url: https://rfswick.github.io/blogs/2024-10-18-my-first-post/
+draft: true
+draft-mode: visible
+---
+
+## This is my first section
+```{r}
+# library(knitr)
+# library(tidyverse)
+# knitr::include_graphics("CALGRA.png")
+```
+
+
+I'm going to insert a footnote here[^1]
+
+[^1]: Here is a new footnote
+
+## This is my second
+
+Here's my next paragraph[^2]
+
+[^2]: Here is my second footnote
+
+I'm citing Sam[@csik2022]
+
+Here is more random text. I am going to cite a journal article now[@gaynor2022].
+
+
+
+
+
+
+
