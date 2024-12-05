@@ -8,7 +8,6 @@ about:
   links: 
     - text: LinkedIn
       href: http://www.linkedin.com/in/rachelswick
-      target: _blank
     - text: GitHub
       href: https://github.com/rfswick
     - text: Email
