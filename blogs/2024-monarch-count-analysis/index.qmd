@@ -1,0 +1,13 @@
+---
+title: "The Impact of a Changing Climate on the Number of Monarch Butterflies (*Danaus plexippus*) at Santa Barbara County Overwintering Sites"
+description: "A statistical analysis of Xerces society Christmas counts of monarch butterflies at California overwintering sites"
+author:
+   - name: Rachel Swick
+     url: https://rfswick.github.io/
+     affiliation: MEDS
+     affiliation-url: https://bren.ucsb.edu/masters-programs/master-environmental-data-science
+date: last-modified
+categories: [ MEDS]
+toc: true
+bibliography: references.bib
+---
