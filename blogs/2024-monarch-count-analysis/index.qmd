@@ -1,6 +1,6 @@
 ---
-title: "The Impact of a Changing Climate on the Number of Monarch Butterflies (*Danaus plexippus*) at Santa Barbara County Overwintering Sites"
-description: "A statistical analysis of Xerces society Christmas counts of monarch butterflies at California overwintering sites"
+title: "The Impact of a Changing Climate on the Number of Western Monarch Butterflies (*Danaus plexippus*) at Santa Barbara County Overwintering Sites"
+description: "A statistical analysis of Xerces society Christmas counts of western monarch butterflies at California overwintering sites"
 author:
    - name: Rachel Swick
      url: https://rfswick.github.io/
@@ -10,4 +10,487 @@ date: last-modified
 categories: [ MEDS]
 toc: true
 bibliography: references.bib
+editor_options: 
+  chunk_output_type: console
 ---
+
+![USDA / US Forest Service 2024](usda_monarch_overwintering.jpg)
+
+## Western Monarch Butterfly
+
+The Western monarch butterfly (*Danaus plexippus*) is an iconic species that was once prolific across the United States. While monarchs can be found throughout most of the US at some point during the year, the species is divided into two unofficial groups by the Continental Divide. Western monarchs are found in the western half of the United States, Eastern monarchs in the the eastern half. However, these two groups are not genetically distinct. Monarchs are a migratory species, with western monarchs spending most of the spring and summer months in Washington, Oregon, Idaho, Utah, Nevada, and Arizona. In the winter, they migrate back to Coastal California where they will spend the winter months at overwintering sites. These overwintering sites extend from Medocino County in California to Baja California in Mexico. Scientists have witnessed monarchs returning to the same overwintering sites year after year.
+
+## Overwintering Sites
+
+So what makes up a preferred overwintering site for monarchs? Overwintering sites typically consist of a thick grove of wind-protected trees where monarchs can cluster together and be protected from the elements. Overwintering sites are typically found to be thick groves of *Eucalyptus* tree species or Monterey cypress (*Cupressus macrocarpa*). Overwintering monarchs are particularly vulnerable to swings in temperature. Temperatures need to be sufficiently low enough that monarch metabolisims are not overworked, while not being so low that they freeze. 
+
+
+
+
+## Import Libraries and Load Data
+
+```{r}
+# Load libraries
+library(tidyverse)
+library(here)
+library(kableExtra)
+library(dynlm)
+```
+
+```{r}
+# Load monarch data
+monarch_data <- read_csv(here("blogs", "2024-monarch-count-analysis", "data", "XercesSociety_WMC_Data_3.19.2024.csv"))
+
+# Load SB rainfall data
+carp_rain <- read_csv(here("blogs", "2024-monarch-count-analysis", "data", "carpinteria-fire-station-rain-gauge.csv"))
+mont_rain <- read_csv(here("blogs", "2024-monarch-count-analysis", "data", "cold-springs-debris-basin-rain-gauge.csv"))
+sb_rain <- read_csv(here("blogs", "2024-monarch-count-analysis", "data", "santa-barbara-rain-gauge.csv"))
+lompoc_rain <- read_csv(here("blogs", "2024-monarch-count-analysis", "data", "surf-beach-rain-gauge.csv"))
+goleta_rain <- read_csv(here("blogs", "2024-monarch-count-analysis", "data", "ucsb-rain-gauge.csv"))
+```
+
+## Clean Monarch Data
+
+```{r}
+# Add "y_" to beginning of year columns to select columns more easily
+names(monarch_data)[4:ncol(monarch_data)] <- paste0("y_", names(monarch_data)[4:ncol(monarch_data)])
+
+# Select monarch data from Santa Barbara county
+monarch_sb <- monarch_data %>% 
+  filter(COUNTY == "Santa Barbara") %>% 
+  mutate(across(starts_with("y_"), as.integer))
+
+# Remove "y_" from the beginning of year columns
+names(monarch_sb) <- gsub("^y_", "", names(monarch_sb))
+
+# Make the year columns tidy and drop unneeded columns
+monarch_sb <- monarch_sb %>% 
+  pivot_longer(cols = starts_with("19") | starts_with("20"),  
+               names_to = "YEAR", 
+               values_to = "COUNT") %>% 
+  select(-starts_with("LS"), -starts_with("..."))
+```
+
+## Select Monarch Data
+
+```{r}
+# Number of NA values at each site
+monarch_sb_site <- monarch_sb %>% 
+  group_by(`SITE NAME`) %>% 
+  summarize(NA_Count = sum(is.na(COUNT)))
+
+# Total monarch count by year
+monarch_sb_total <- monarch_sb %>% 
+  group_by(YEAR) %>% 
+  summarize(Total_Count = sum(COUNT, na.rm = TRUE))
+
+# Average monarch count by year
+monarch_sb_avg_1 <- monarch_sb %>% 
+  group_by(YEAR) %>% 
+  summarize(Avg_Count = round(mean(COUNT, na.rm = TRUE), 0)) %>% 
+  rename(year = YEAR,
+         avg_count = Avg_Count)
+
+# Average monarch count by year
+monarch_sb_avg <- monarch_sb %>% 
+  group_by(YEAR) %>% 
+  summarize(Avg_Count = round(mean(COUNT, na.rm = TRUE), 0)) %>% 
+  rename(year = YEAR,
+         avg_count = Avg_Count)
+
+# Elwood Mesa average monarch count by year
+monarch_ellwood_avg <- monarch_sb %>% 
+  filter(str_starts(`SITE NAME`, "Ellwood"))  %>% 
+  group_by(YEAR) %>% 
+  summarize(Avg_Count = round(mean(COUNT, na.rm = TRUE), 0))
+```
+
+## Monarch Count Trends
+
+```{r}
+# Update year to be a date object
+monarch_sb_total$YEAR <- as.Date(paste(monarch_sb_total$YEAR, "01", "01", sep = "-"))
+
+# Plot
+ggplot(data = monarch_sb_total, aes(x = YEAR, y = Total_Count, group = 1)) +
+  geom_line(color = "orange",
+            lwd = 1) +
+  labs(title = "Total Count of Monarchs at Santa Barbara County Overwintering Sites (1997 - 2023)",
+       x = "Year",
+       y = "Count") +
+  scale_x_date(breaks = "2 years", labels = scales::date_format("%Y")) +
+  theme_classic()
+```
+
+
+```{r}
+# Update year to be a date object
+monarch_sb_avg_1$year <- as.Date(paste(monarch_sb_avg_1$year, "01", "01", sep = "-"))
+
+# Plot
+ggplot(data = monarch_sb_avg_1, aes(x = year, y = avg_count, group = 1)) +
+  geom_line(color = "orange",
+            lwd = 1) +
+  labs(title = "Average Count of Monarchs at Santa Barbara County Overwintering Sites (1997 - 2023)",
+       x = "Year",
+       y = "Count") +
+  scale_x_date(breaks = "2 years", labels = scales::date_format("%Y")) +
+  theme_classic()
+```
+
+
+```{r}
+# Update year to be a date object
+monarch_ellwood_avg$YEAR <- as.Date(paste(monarch_ellwood_avg$YEAR, "01", "01", sep = "-"))
+
+# Plot
+ggplot(data = monarch_ellwood_avg, aes(x = YEAR, y = Avg_Count, group = 1)) +
+  geom_line(color = "orange",
+            lwd = 1) +
+  labs(title = "Average Count of Monarchs at the Ellwood Mesa Overwintering Site (1997 - 2023)",
+       x = "Year",
+       y = "Count") +
+  scale_x_date(breaks = "2 years", labels = scales::date_format("%Y")) +
+  theme_classic()
+```
+
+
+## Santa Barbara County Rainfall Data
+
+
+```{r}
+# UCSB rain gauge data
+goleta_rain_dec <- goleta_rain %>% 
+  filter(month == 12) %>% 
+  rename("daily_rain" = "daily rain")
+
+# Cold Springs Debris Basin rain gauge
+mont_rain_dec <- mont_rain %>% 
+  filter(month == 12) %>% 
+  rename("daily_rain" = "daily rain")
+
+# Carpinteria Fire Station rain gauge data
+carp_rain_dec <- carp_rain %>% 
+  filter(month == 12) %>% 
+  rename("daily_rain" = "daily rain")
+
+# Santa Barbara rain gauge data
+sb_rain_dec <- sb_rain %>% 
+  filter(month == 12) %>% 
+  rename("daily_rain" = "daily rain")
+
+# Surf Beach rain gauge data
+lompoc_rain_dec <- lompoc_rain %>% 
+  filter(month == 12) %>% 
+  rename("daily_rain" = "daily rain")
+```
+
+```{r}
+ggplot(data = goleta_rain_dec, aes(x = daily_rain)) +
+  geom_histogram(color = "grey",
+                 fill = "lightblue",
+                 bins = 40) +
+  labs(title = "Rainfall at UCSB Rain Gauge in December (1951 - 2024)",
+       x = "Daily Rainfall (Inches)",
+       y = "Count") +
+  theme_bw()
+```
+
+
+```{r}
+ggplot(data = mont_rain_dec, aes(x = daily_rain)) +
+  geom_histogram(color = "grey",
+                 fill = "lightblue",
+                 bins = 40) +
+  labs(title = "Rainfall at Cold Springs Debris Basin Rain Gauge in December (1964 - 2024)",
+       x = "Daily Rainfall (Inches)",
+       y = "Count") +
+  theme_bw()
+```
+
+## Determine rain events occurring in the 80th percentile or above
+
+```{r}
+# Find 80th percentile of daily rain data
+upper_bound_g <- quantile(goleta_rain_dec$daily_rain, 0.80, na.rm = TRUE)
+
+# Identify values outside 90% of the average
+goleta_rain_dec$outside_range <- goleta_rain_dec$daily_rain > upper_bound_g
+
+goleta_rain_grouped <- goleta_rain_dec %>% 
+  select(-code) %>% 
+  group_by(year) %>% 
+  summarize(rain_events = sum(outside_range == TRUE)) %>% 
+  mutate(rain_gauge = "UCSB")
+```
+
+```{r}
+# Find 80th percentile of daily rain data
+upper_bound_m <- quantile(mont_rain_dec$daily_rain, 0.80, na.rm = TRUE)
+
+# Identify values outside 90% of the average
+mont_rain_dec$outside_range <- mont_rain_dec$daily_rain > upper_bound_m
+
+mont_rain_grouped <- mont_rain_dec %>% 
+  select(-code) %>% 
+  group_by(year) %>% 
+  summarize(rain_events = sum(outside_range == TRUE)) %>% 
+   mutate(rain_gauge = "Cold Springs")
+```
+
+```{r}
+# Find 80th percentile of daily rain data
+upper_bound_c <- quantile(carp_rain_dec$daily_rain, 0.80, na.rm = TRUE)
+
+# Identify values outside 90% of the average
+carp_rain_dec$outside_range <- carp_rain_dec$daily_rain > upper_bound_c
+
+carp_rain_grouped <- carp_rain_dec %>% 
+  select(-code) %>% 
+  group_by(year) %>% 
+  summarize(rain_events = sum(outside_range == TRUE)) %>% 
+   mutate(rain_gauge = "Carp Fire Station")
+```
+
+```{r}
+# Find 80th percentile of daily rain data
+upper_bound_s <- quantile(sb_rain_dec$daily_rain, 0.80, na.rm = TRUE)
+
+# Identify values outside 90% of the average
+sb_rain_dec$outside_range <- sb_rain_dec$daily_rain > upper_bound_s
+
+sb_rain_grouped <- sb_rain_dec %>% 
+  select(-code) %>% 
+  group_by(year) %>% 
+  summarize(rain_events = sum(outside_range == TRUE)) %>% 
+  mutate(rain_gauge = "Santa Barbara")
+```
+
+```{r}
+# Find 80th percentile of daily rain data
+upper_bound_l <- quantile(lompoc_rain_dec$daily_rain, 0.80, na.rm = TRUE)
+
+# Identify values outside 90% of the average
+lompoc_rain_dec$outside_range <- lompoc_rain_dec$daily_rain > upper_bound_l
+
+lompoc_rain_grouped <- lompoc_rain_dec %>% 
+  select(-code) %>% 
+  group_by(year) %>% 
+  summarize(rain_events = sum(outside_range == TRUE)) %>% 
+  mutate(rain_gauge = "Surf Beach")
+```
+
+```{r}
+# Combine rain gauge data together
+rain_gauge_data <- bind_rows(mont_rain_grouped, goleta_rain_grouped, carp_rain_grouped, sb_rain_grouped, lompoc_rain_grouped)
+
+# Average number of storm events across all rain gauges
+storm_events <- rain_gauge_data %>% 
+  group_by(year) %>% 
+  summarize(avg_storm_events = round(mean(rain_events), 2))
+```
+
+## Determine if the number of storm events has been increasing over time
+
+```{r}
+ggplot(storm_events, aes(x = year, y = avg_storm_events)) +
+  geom_point(color = "blue") +
+  geom_smooth() +
+  labs(title = "Average Number of Storm Events per Year",
+       x = "Year",
+       y = "Average Number of Storm Events") +
+  theme_bw()
+
+# Determine if there is correlation between time and storm events
+cor(storm_events$avg_storm_events, storm_events$year)
+```
+
+## Look at Maximum Rain Events
+
+```{r}
+# UCSB rain gauge data
+goleta_rain_max <- goleta_rain %>% 
+  filter(month == 12) %>% 
+  rename("daily_rain" = "daily rain") %>% 
+  group_by(year) %>% 
+  summarise(max_storm = max(daily_rain)) %>% 
+  mutate(rain_gauge = "UCSB")
+
+# Cold Springs Debris Basin rain gauge
+mont_rain_max <- mont_rain %>% 
+  filter(month == 12) %>% 
+  rename("daily_rain" = "daily rain") %>% 
+  group_by(year) %>% 
+  summarise(max_storm = max(daily_rain)) %>% 
+  mutate(rain_gauge = "Cold Springs")
+
+# Carpinteria Fire Station rain gauge data
+carp_rain_max <- carp_rain %>% 
+  filter(month == 12) %>% 
+  rename("daily_rain" = "daily rain") %>% 
+  group_by(year) %>% 
+  summarise(max_storm = max(daily_rain)) %>% 
+  mutate(rain_gauge = "Carp Fire Station")
+
+# Santa Barbara rain gauge data
+sb_rain_max <- sb_rain %>% 
+  filter(month == 12) %>% 
+  rename("daily_rain" = "daily rain") %>% 
+  group_by(year) %>% 
+  summarise(max_storm = max(daily_rain)) %>% 
+  mutate(rain_gauge = "Santa Barbara")
+
+# Surf Beach rain gauge data
+lompoc_rain_max <- lompoc_rain %>% 
+  filter(month == 12) %>% 
+  rename("daily_rain" = "daily rain") %>% 
+  group_by(year) %>% 
+  summarise(max_storm = max(daily_rain)) %>% 
+  mutate(rain_gauge = "Surf Beach")
+```
+
+```{r}
+# Combine rain gauge data together
+rain_gauge_max <- bind_rows(mont_rain_max, goleta_rain_max, carp_rain_max, sb_rain_max, lompoc_rain_max)
+
+# Average number of storm events across all rain gauges
+max_storm_events <- rain_gauge_max %>% 
+  group_by(year) %>% 
+  summarize(max_storm_event = round(mean(max_storm), 2)) 
+```
+
+```{r}
+ggplot(max_storm_events, aes(x = year, y = max_storm_event)) +
+  geom_point(color = "blue") +
+  geom_smooth() +
+  labs(title = "Average Maximum Storm Event per Year",
+       x = "Year",
+       y = "Average Maximum Storm Event (Inches of Rain)") +
+  theme_bw()
+
+# Determine if there is correlation between time and storm events
+cor(max_storm_events$max_storm_event, max_storm_events$year)
+```
+
+## Combine rain and monarch data together
+
+```{r}
+# Combine rain and monarch data
+monarch_rain_df <- merge(monarch_sb_avg, max_storm_events, by = "year")
+monarch_rain_df <- merge(monarch_rain_df, storm_events, by = "year")
+```
+
+
+```{r}
+ggplot(monarch_rain_df, aes(x = max_storm_event, y = avg_count)) +
+  geom_point(color = "orange") +
+  geom_smooth() +
+  labs(title = "Max Rainstorms versus Monarch counts",
+       x = "Average Maximum Storm (Inches of Rain)",
+       y = "Average Monarch Count") +
+  theme_bw()
+
+# Determine if there is correlation between time and storm events
+cor(monarch_rain_df$max_storm_event, monarch_rain_df$avg_count)
+```
+
+```{r}
+ggplot(monarch_rain_df, aes(x = avg_storm_events, y = avg_count)) +
+  geom_point(color = "orange") +
+  geom_smooth() +
+  labs(title = "Average Number of Extreme Storms versus Monarch counts",
+       x = "Average Number of Extreme Storm Days",
+       y = "Average Monarch Count") +
+  theme_bw()
+
+# Determine if there is correlation between time and average number of storm events
+cor(monarch_rain_df$avg_storm_events, monarch_rain_df$avg_count)
+```
+
+
+```{r}
+lm(monarch_rain_df$avg_count ~ monarch_rain_df$max_storm_event)
+```
+
+```{r}
+summary(lm(monarch_rain_df$avg_count ~ monarch_rain_df$avg_storm_events))
+```
+
+
+```{r}
+acf(monarch_rain_df$avg_count, main = "Autocorrelation Function of Time Series")
+```
+
+```{r}
+ols_mod <- lm(avg_count ~ max_storm_event, monarch_rain_df)
+summary(ols_mod)
+residual_acf <- acf(resid(ols_mod), plot = FALSE)
+tibble(Lag = residual_acf$lag, ACF = as.vector(residual_acf$acf)) %>% 
+  ggplot(aes(Lag, ACF)) +
+  geom_line(lwd = 2) +
+  geom_hline(yintercept = 0,
+             linetype = "dashed",
+             color = "orange",
+             linewidth = 1.5) +
+  theme_bw() +
+  labs(title = "Lag model")
+```
+
+```{r}
+adl_mod <- dynlm(
+  avg_count ~ L(avg_count, 1) + max_storm_event,
+  ts(monarch_rain_df, start = 1996)
+)
+summary(adl_mod)
+adl_resid_acf <- acf(resid(adl_mod), plot = FALSE)
+tibble(Lag = adl_resid_acf$lag, ACF = as.vector(adl_resid_acf$acf)) %>% 
+  ggplot(aes(Lag, ACF)) +
+  geom_hline(yintercept = 0,
+             linetype = "dashed",
+             color = "orange",
+             lwd = 1.5) +
+  geom_line(lwd = 2) +
+  theme_bw() +
+  labs(title = "Autoregressive Distrubted Lag Model")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
